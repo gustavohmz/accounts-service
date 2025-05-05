@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  accounts-db:
+    image: postgres:16
+    container_name: accounts-db
+    environment:
+      POSTGRES_DB: accounts_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 4535
+    ports:
+      - "5433:5432"
+    volumes:
+      - accounts_data:/var/lib/postgresql/data
+    networks:
+      - bank-network
+
+  rabbitmq-accounts:
+    image: rabbitmq:3-management
+    container_name: rabbitmq-accounts
+    ports:
+      - "15673:15672"
+    networks:
+      - bank-network
+
+  accounts-service:
+    build: .
+    container_name: accounts-service
+    depends_on:
+      - accounts-db
+      - rabbitmq-accounts
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://accounts-db:5432/accounts_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: 4535
+      SPRING_RABBITMQ_HOST: rabbitmq-accounts
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: guest
+      SPRING_RABBITMQ_PASSWORD: guest
+      USER_SERVICE_URL: http://usuarios-service:8080
+    networks:
+      - bank-network
+
+volumes:
+  accounts_data:
+
+networks:
+  bank-network:
+    external: true
